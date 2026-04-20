@@ -1,4 +1,4 @@
-### CS4120FinalProject — IMDb Multi-Label Genre Classification
+# CS4120FinalProject — IMDb Multi-Label Genre Classification
 Course: CS4120 Natural Language Processing
 Group Members: Amulya Dussa, Eftyghia Kourtelidis, Maxim Onashchenko, John Young
 
@@ -18,15 +18,15 @@ pip install numpy pandas matplotlib seaborn scikit-learn joblib torch nltk
 How to Run
 The three scripts must be run in order:
 
-# Step 1 — Preprocessing (Amulya Dussa)
+### Step 1 — Preprocessing (Amulya Dussa)
 python preprocessing_nlp.py
 Cleans plot summaries, tokenizes, lemmatizes, encodes genre labels, and generates TF-IDF features. Saves all outputs to models/.
 
-# Step 2 — Modeling (Maxim Onashchenko)
+### Step 2 — Modeling (Maxim Onashchenko)
 python models.py
 Trains a Logistic Regression baseline and a PyTorch feedforward neural network. Saves trained models to models/.
 
-# Step 3 — Evaluation (John Young)
+### Step 3 — Evaluation (John Young)
 python evaluation.py
 Runs per-genre Precision/Recall/F1 analysis, confusion heatmaps, and FP/FN error analysis for both models. Saves all plots to models/.
 
