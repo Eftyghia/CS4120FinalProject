@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Config
-DATA_DIR = 'data/Genre Classification Dataset'
+DATA_DIR = 'dataset'
 MODELS_DIR = 'models'
 os.makedirs(MODELS_DIR, exist_ok=True)
 
@@ -124,7 +124,6 @@ train_df[['id', 'title', 'text', 'genres']].to_pickle(f'{MODELS_DIR}/train_proce
 test_df[['id', 'title', 'text']].to_pickle(f'{MODELS_DIR}/test_processed.pkl')
 test_solution_df.to_pickle(f'{MODELS_DIR}/test_solution_processed.pkl')
 
-print("\n✅ PREPROCESSING COMPLETED SUCCESSFULLY!")
 print(f"All files saved in '{MODELS_DIR}' folder")
 
 # Genre Distribution Plot
