@@ -11,13 +11,13 @@ This project tackles multi-label genre classification of movies using NLP techni
 We use the IMDb Genre Classification Dataset, available on Kaggle. It contains approximately 54,000 English-language movie plot summaries, each labeled with one or more genres across 27 categories.
 Download the dataset and place the files in the dataset/ folder:
 dataset/
-├── train_data.txt
-├── test_data.txt
-└── test_data_solution.txt
+  train_data.txt
+  test_data.txt
+  test_data_solution.txt
 
 # Dependencies
 Install all required packages with:
-bashpip install numpy pandas matplotlib seaborn scikit-learn joblib torch nltk
+  bashpip install numpy pandas matplotlib seaborn scikit-learn joblib torch nltk
 
 # How to Run
 The three scripts must be run in order. Each script depends on the outputs of the previous one.
@@ -62,15 +62,15 @@ Also prints class weights and ranked error analysis tables to the terminal.
 
 # Repository Structure
 CS4120FinalProject/
-├── dataset/
-│   ├── train_data.txt
-│   ├── test_data.txt
-│   └── test_data_solution.txt
-├── models/               ← generated at runtime, not tracked by git
-├── preprocessing_nlp.py  ← Step 1: data cleaning and feature extraction
-├── models.py             ← Step 2: model training
-├── evaluation.py         ← Step 3: evaluation and error analysis
-└── README.md
+  dataset/
+    train_data.txt
+    test_data.txt
+    test_data_solution.txt
+  models/               - generated at runtime, not tracked by git
+  preprocessing_nlp.py  - Step 1: data cleaning and feature extraction
+  models.py             - Step 2: model training
+  evaluation.py         - Step 3: evaluation and error analysis
+  README.md
 
 # Results Summary
 ModelMicro F1Macro F1Logistic Regression0.49510.1689Neural Network0.60030.2433
