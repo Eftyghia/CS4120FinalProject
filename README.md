@@ -4,10 +4,10 @@ IMDb Multi-Label Genre Classification
 Course: CS4120 Natural Language Processing
 Group Members: Amulya Dussa, Eftyghia Kourtelidis, Maxim Onashchenko, John Young
 
-Project Overview
+# Project Overview
 This project tackles multi-label genre classification of movies using NLP techniques applied to IMDb plot summaries. Given a textual description of a film, our system predicts one or more genre labels from a set of 27 categories (e.g. Drama, Comedy, Horror, Thriller). We build and compare a series of models of increasing sophistication — a TF-IDF + Logistic Regression baseline, a custom feedforward neural network, and a fine-tuned BERT transformer (in progress) — evaluating each using macro-averaged F1, per-genre precision/recall, and error analysis.
 
-Dataset
+# Dataset
 We use the IMDb Genre Classification Dataset, available on Kaggle. It contains approximately 54,000 English-language movie plot summaries, each labeled with one or more genres across 27 categories.
 Download the dataset and place the files in the dataset/ folder:
 dataset/
@@ -15,11 +15,11 @@ dataset/
 ├── test_data.txt
 └── test_data_solution.txt
 
-Dependencies
+# Dependencies
 Install all required packages with:
 bashpip install numpy pandas matplotlib seaborn scikit-learn joblib torch nltk
 
-How to Run
+# How to Run
 The three scripts must be run in order. Each script depends on the outputs of the previous one.
 Step 1 — Preprocessing
 bashpython preprocessing_nlp.py
@@ -60,7 +60,7 @@ error_analysis_Neural_Network.png
 
 Also prints class weights and ranked error analysis tables to the terminal.
 
-Repository Structure
+# Repository Structure
 CS4120FinalProject/
 ├── dataset/
 │   ├── train_data.txt
@@ -72,12 +72,11 @@ CS4120FinalProject/
 ├── evaluation.py         ← Step 3: evaluation and error analysis
 └── README.md
 
-Results Summary
+# Results Summary
 ModelMicro F1Macro F1Logistic Regression0.49510.1689Neural Network0.60030.2433
 The neural network substantially outperforms the LR baseline, particularly in recall for mid-frequency genres like horror, comedy, and short. Both models struggle with rare genres (e.g. war, news, history, musical) due to severe class imbalance — motivating the class weighting analysis in evaluation.py.
 
-Notes
-
+# Notes
 The models/ folder is generated at runtime and should not be committed to the repo. Add it to .gitignore.
 NLTK data packages (punkt, punkt_tab, stopwords, wordnet) must be available locally. They will download automatically on first run.
 Neural network training runs on CPU by default on most machines and takes approximately 10–15 minutes.
