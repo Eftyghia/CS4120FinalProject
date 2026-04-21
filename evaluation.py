@@ -54,6 +54,27 @@ with torch.no_grad():
     nn_probs = torch.sigmoid(nn_model(X_val_dense)).cpu().numpy()
 nn_preds = (nn_probs >= THRESHOLD).astype(int)
 
+# ── Load BERT predictions (saved by bert_classifier.py) ──────────────────────
+# These are evaluated on the test set, not the val set, so we keep them
+# separate from the LR/NN val comparisons but run the same analysis functions.
+import os
+
+BERT_DIR = f'{MODELS_DIR}/bert'
+BERT_AVAILABLE = (
+        os.path.exists(f'{BERT_DIR}/bert_test_probs.joblib') and
+        os.path.exists(f'{BERT_DIR}/bert_test_preds.joblib') and
+        os.path.exists(f'{BERT_DIR}/bert_test_labels.joblib')
+)
+
+if BERT_AVAILABLE:
+    bert_probs = joblib.load(f'{BERT_DIR}/bert_test_probs.joblib')
+    bert_preds = joblib.load(f'{BERT_DIR}/bert_test_preds.joblib')
+    bert_labels = joblib.load(f'{BERT_DIR}/bert_test_labels.joblib')
+    print("BERT predictions loaded successfully.")
+else:
+    print("BERT predictions not found. Run bert_classifier.py first.")
+    print(f"Expected files in: {BERT_DIR}/")
+
 
 # ── 1. CLASS WEIGHTING ────────────────────────────────────────────────────────
 # Computes how underrepresented each genre is
@@ -96,6 +117,11 @@ lr_p, lr_r, lr_f1 = per_genre_metrics(y_val, lr_preds, "Logistic Regression")
 print("\n=== NN Per-Genre Metrics ===")
 nn_p, nn_r, nn_f1 = per_genre_metrics(y_val, nn_preds, "Neural Network")
 
+# ── BERT per-genre metrics (uses test set labels) ────────────────────────────
+if BERT_AVAILABLE:
+    print("\n=== BERT Per-Genre Metrics ===")
+    bert_p, bert_r, bert_f1_per = per_genre_metrics(bert_labels, bert_preds, "BERT")
+
 
 # ── 3. CONFUSION MATRIX (multilabel, per-genre) ───────────────────────────────
 def plot_confusion_heatmap(y_true, y_pred, model_name):
@@ -131,6 +157,10 @@ def plot_confusion_heatmap(y_true, y_pred, model_name):
 
 plot_confusion_heatmap(y_val, lr_preds, "Logistic Regression")
 plot_confusion_heatmap(y_val, nn_preds, "Neural Network")
+
+# ── BERT confusion heatmap ────────────────────────────────────────────────────
+if BERT_AVAILABLE:
+    plot_confusion_heatmap(bert_labels, bert_preds, "BERT")
 
 
 # ── 4. ERROR ANALYSIS ─────────────────────────────────────────────────────────
@@ -177,5 +207,49 @@ def error_analysis(y_true, y_pred, model_name):
 
 error_analysis(y_val, lr_preds, "Logistic_Regression")
 error_analysis(y_val, nn_preds, "Neural_Network")
+
+# ── BERT error analysis ───────────────────────────────────────────────────────
+if BERT_AVAILABLE:
+    error_analysis(bert_labels, bert_preds, "BERT")
+
+# 5. SUMMARY COMPARISON TABLE
+print("\n=== Summary: All Models ===")
+print(f"{'Model':<25} {'Micro F1':>10} {'Macro F1':>10}")
+print("-" * 47)
+
+lr_micro = f1_score(y_val, lr_preds, average='micro', zero_division=0)
+lr_macro = f1_score(y_val, lr_preds, average='macro', zero_division=0)
+nn_micro = f1_score(y_val, nn_preds, average='micro', zero_division=0)
+nn_macro = f1_score(y_val, nn_preds, average='macro', zero_division=0)
+
+print(f"{'Logistic Regression':<25} {lr_micro:>10.4f} {lr_macro:>10.4f}")
+print(f"{'Neural Network':<25} {nn_micro:>10.4f} {nn_macro:>10.4f}")
+
+if BERT_AVAILABLE:
+    bert_micro = f1_score(bert_labels, bert_preds, average='micro', zero_division=0)
+    bert_macro = f1_score(bert_labels, bert_preds, average='macro', zero_division=0)
+    print(f"{'BERT (DistilBERT)':<25} {bert_micro:>10.4f} {bert_macro:>10.4f}")
+
+    # Bar chart comparing all three models
+    fig, ax = plt.subplots(figsize=(8, 5))
+    models_names = ['LR Baseline', 'Neural Network', 'BERT']
+    micro_scores = [lr_micro, nn_micro, bert_micro]
+    macro_scores = [lr_macro, nn_macro, bert_macro]
+    x = np.arange(len(models_names))
+    w = 0.35
+    ax.bar(x - w / 2, micro_scores, w, label='Micro F1', color='steelblue')
+    ax.bar(x + w / 2, macro_scores, w, label='Macro F1', color='coral')
+    ax.set_xticks(x)
+    ax.set_xticklabels(models_names)
+    ax.set_ylim(0, 1)
+    ax.set_title('Model Comparison — Micro and Macro F1')
+    ax.set_ylabel('F1 Score')
+    ax.legend()
+    for i, (mi, ma) in enumerate(zip(micro_scores, macro_scores)):
+        ax.text(i - w / 2, mi + 0.01, f'{mi:.3f}', ha='center', fontsize=9, fontweight='bold')
+        ax.text(i + w / 2, ma + 0.01, f'{ma:.3f}', ha='center', fontsize=9, fontweight='bold')
+    plt.tight_layout()
+    plt.savefig(f'{MODELS_DIR}/all_models_comparison.png', dpi=150)
+    plt.show()
 
 print("\nAll plots saved to models/ folder.")
