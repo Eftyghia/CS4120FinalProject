@@ -13,17 +13,15 @@ from transformers import (
 from sklearn.metrics import f1_score, classification_report
 from tqdm import tqdm
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# configuration
 MODELS_DIR = 'models'
 DATA_DIR = 'dataset'
 BERT_DIR = os.path.join(MODELS_DIR, 'bert')
 
-# Switch to "bert-base-uncased" if you have a powerful GPU and want full BERT.
-# distilbert is ~40 % faster with minimal accuracy drop.
 MODEL_NAME = 'distilbert-base-uncased'
 
-MAX_LEN = 256  # plot summaries are long; 256 captures most content
-BATCH_SIZE = 16  # reduce to 8 if you hit OOM
+MAX_LEN = 256  # plot summaries are long, 256 captures most content
+BATCH_SIZE = 16
 EPOCHS = 4
 LR = 2e-5
 WARMUP_RATIO = 0.1
@@ -39,7 +37,7 @@ DEVICE = (
 print(f"Using device: {DEVICE}")
 
 
-# ── Dataset ───────────────────────────────────────────────────────────────────
+# dataset
 class PlotDataset(Dataset):
     """
     Tokenises raw plot text on the fly so we do NOT depend on TF-IDF
@@ -70,16 +68,18 @@ class PlotDataset(Dataset):
         }
 
 
-# ── Load preprocessed artifacts ──────────────────────────────────────────────
+# load preprocessed artifacts
 def load_artifacts():
-    mlb       = joblib.load(os.path.join(MODELS_DIR, 'mlb.joblib'))
-    train_df  = joblib.load(os.path.join(MODELS_DIR, 'train_processed.pkl'))
-    test_sol  = joblib.load(os.path.join(MODELS_DIR, 'test_solution_processed.pkl'))
+    mlb = joblib.load(os.path.join(MODELS_DIR, 'mlb.joblib'))
+    train_df = joblib.load(os.path.join(MODELS_DIR, 'train_processed.pkl'))
+    test_sol = joblib.load(os.path.join(MODELS_DIR, 'test_solution_processed.pkl'))
 
     print(f"train_processed columns:         {list(train_df.columns)}")
     print(f"test_solution_processed columns: {list(test_sol.columns)}")
 
     def make_texts(df):
+        # Different pkl files were saved with different column names depending
+        # on which script generated them. this handles both cases gracefully.
         if 'text' in df.columns:
             return df['text'].fillna('').tolist()
         elif 'clean_plot' in df.columns:
@@ -98,7 +98,7 @@ def load_artifacts():
     return mlb, train_texts, y_train, test_texts, y_test
 
 
-# ── Training ──────────────────────────────────────────────────────────────────
+# training
 def train(model, loader, optimizer, scheduler, criterion):
     model.train()
     total_loss = 0.0
@@ -120,7 +120,7 @@ def train(model, loader, optimizer, scheduler, criterion):
     return total_loss / len(loader)
 
 
-# ── Evaluation ────────────────────────────────────────────────────────────────
+# evaluation
 def evaluate(model, loader, criterion, threshold=THRESHOLD):
     model.eval()
     total_loss = 0.0
@@ -151,7 +151,7 @@ def evaluate(model, loader, criterion, threshold=THRESHOLD):
     return total_loss / len(loader), micro_f1, macro_f1, all_probs, all_labels
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# main
 def main(eval_only=False):
     mlb, train_texts, y_train, test_texts, y_test = load_artifacts()
     n_classes = len(mlb.classes_)
@@ -159,7 +159,7 @@ def main(eval_only=False):
 
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
-    # Split off a validation set (same 85/15 split as the other models)
+    # split off a validation set (same 85/15 split as the other models)
     from sklearn.model_selection import train_test_split
     tr_texts, val_texts, y_tr, y_val = train_test_split(
         train_texts, y_train, test_size=0.15, random_state=42
@@ -169,11 +169,12 @@ def main(eval_only=False):
     val_ds = PlotDataset(val_texts, y_val, tokenizer, MAX_LEN)
     test_ds = PlotDataset(test_texts, y_test, tokenizer, MAX_LEN)
 
+    # pin_memory speeds up CPU to GPU transfer, harmless if running on CPU
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=2, pin_memory=True)
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)
     test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)
 
-    # Build model — AutoModelForSequenceClassification sets the head to
+    # build model — AutoModelForSequenceClassification sets the head to
     # n_classes outputs; we apply BCEWithLogitsLoss ourselves for multi-label.
     model = AutoModelForSequenceClassification.from_pretrained(
         MODEL_NAME,
@@ -216,7 +217,7 @@ def main(eval_only=False):
         print(f"\nBest Val Micro F1: {best_val_f1:.4f}")
         model.load_state_dict(torch.load(checkpoint_path, map_location=DEVICE))
 
-    # ── Final evaluation on the held-out test set ─────────────────────────
+    # final evaluation on the held-out test set
     print("\n=== Test Set Evaluation ===")
     _, test_micro, test_macro, test_probs, test_labels = evaluate(
         model, test_loader, criterion
@@ -232,14 +233,14 @@ def main(eval_only=False):
         zero_division=0,
     ))
 
-    # Save predictions so the error-analysis script can load them
+    # save predictions so the error-analysis script can load them
     joblib.dump(test_probs, os.path.join(BERT_DIR, 'bert_test_probs.joblib'))
     joblib.dump(test_preds, os.path.join(BERT_DIR, 'bert_test_preds.joblib'))
     joblib.dump(test_labels, os.path.join(BERT_DIR, 'bert_test_labels.joblib'))
     print(f"\nPredictions saved to {BERT_DIR}/")
 
-    # ── Summary table (mirrors the bar chart in the MLP script) ──────────
-    # Load the saved LR and MLP scores if available so you can print a
+    # summary table
+    # load the saved LR and MLP scores if available so you can print a
     # clean comparison without re-running those models.
     try:
         lr_model = joblib.load(os.path.join(MODELS_DIR, 'lr_model.joblib'))
@@ -250,7 +251,7 @@ def main(eval_only=False):
         lr_macro = f1_score(y_val_saved, lr_preds, average='macro', zero_division=0)
 
         _, val_micro_nn, val_macro_nn, _, _ = (None, None, None, None, None)  # placeholder
-        # Try loading NN val preds if they were saved separately
+        # try loading NN val preds if they were saved separately
         print("\n=== Model Comparison (val set) ===")
         print(f"{'Model':<25} {'Micro F1':>10} {'Macro F1':>10}")
         print("-" * 47)
